@@ -36,7 +36,7 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts",
     "app/layout.jsx"
-  ],
+, "app/api/auth/register/route.js"  ],
   "exclude": [
     "node_modules"
   ]

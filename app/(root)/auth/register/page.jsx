@@ -22,9 +22,13 @@ import {
 } from "@/components/ui/field"
 
 import { WEBSITE_LOGIN } from "@/routes/WebsitePanelRoute"
+import axios from "axios"
 
 const Register = () => {
-    const [showPassword, setShowPassword] = useState(false)
+    const [showPassword, setShowPassword] = useState({
+        password: false,
+        cPassword: false,
+    });
 
     const form = useForm({
         resolver: zodResolver(registerSchema),
@@ -36,12 +40,22 @@ const Register = () => {
         },
     })
 
-    const {
-        formState: { isSubmitting },
-    } = form
+    const { formState: { isSubmitting } } = form
 
     const onSubmit = async (values) => {
-        console.log("Register values:", values)
+        try {
+            console.log("Register values:", values)
+            const { data: registerResponse } = await axios.post('/api/auth/register', values)
+            if (!registerResponse.success) {
+                throw new Error(registerResponse.message)
+            }
+            form.reset()
+            alert(registerResponse.message)
+        } catch (error) {
+            alter(error.message)
+        } finally {
+
+        }
     }
 
     return (
@@ -100,7 +114,6 @@ const Register = () => {
                                     </Field>
                                 )}
                             />
-
                             {/* Password */}
                             <Controller
                                 name="password"
@@ -110,17 +123,26 @@ const Register = () => {
                                         <FieldLabel>Password</FieldLabel>
                                         <div className="relative">
                                             <Input
-                                                type={showPassword ? "text" : "password"}
+                                                type={showPassword.password ? "text" : "password"}
                                                 placeholder="********"
                                                 {...field}
                                                 className="pr-10"
                                             />
                                             <button
                                                 type="button"
-                                                onClick={() => setShowPassword(!showPassword)}
+                                                onClick={() =>
+                                                    setShowPassword(prev => ({
+                                                        ...prev,
+                                                        password: !prev.password,
+                                                    }))
+                                                }
                                                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                                             >
-                                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                                {showPassword.password ? (
+                                                    <EyeOff size={18} />
+                                                ) : (
+                                                    <Eye size={18} />
+                                                )}
                                             </button>
                                         </div>
                                         {fieldState.invalid && (
@@ -137,13 +159,38 @@ const Register = () => {
                                 render={({ field, fieldState }) => (
                                     <Field data-invalid={fieldState.invalid}>
                                         <FieldLabel>Confirm Password</FieldLabel>
-                                        <Input type="password" placeholder="********" {...field} />
+                                        <div className="relative">
+                                            <Input
+                                                type={showPassword.cPassword ? "text" : "password"}
+                                                placeholder="********"
+                                                {...field}
+                                                className="pr-10"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    setShowPassword(prev => ({
+                                                        ...prev,
+                                                        cPassword: !prev.cPassword,
+                                                    }))
+                                                }
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                            >
+                                                {showPassword.cPassword ? (
+                                                    <EyeOff size={18} />
+                                                ) : (
+                                                    <Eye size={18} />
+                                                )}
+                                            </button>
+                                        </div>
                                         {fieldState.invalid && (
                                             <FieldError errors={[fieldState.error]} />
                                         )}
                                     </Field>
                                 )}
                             />
+
+
                         </FieldGroup>
 
                         <ButtonLoading
