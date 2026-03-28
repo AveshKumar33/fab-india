@@ -6,7 +6,7 @@ import Link from "next/link"
 import { Eye, EyeOff } from "lucide-react"
 import { useForm, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-
+import { showToast } from "@/lib/showToast"
 import Logo from "@/public/assets/images/logo-black.png"
 import { registerSchema } from "@/lib/zod-schemas"
 
@@ -50,9 +50,9 @@ const Register = () => {
                 throw new Error(registerResponse.message)
             }
             form.reset()
-            alert(registerResponse.message)
+            showToast("success", registerResponse.message)
         } catch (error) {
-            alter(error.message)
+            showToast("error", error.message)
         } finally {
 
         }

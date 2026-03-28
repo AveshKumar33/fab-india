@@ -1,12 +1,13 @@
-import connectDB from "@/lib/mongoose";
-import { User } from "@/models/User";
+import { dbConnect } from "@/lib/database-connection";
+import { User } from "@/models/User.model";
+import { OTP } from "@/models/Otp.model";
 import { loginSchema } from "@/lib/zod-schemas";
-import { generateEmailVerificationToken } from "@/lib/jwt";
-import { sendEmail } from "@/lib/send-email";
-import { emailVerificationLink } from "@/lib/email-templates";
+import { sendEmail } from "@/lib/send-mail";
+import { response, catchError, generateOTP } from "@/lib/helper-function";
+import { otpEmail } from "@/email/otpEmail";
 
 export async function POST(req) {
-    await connectDB();
+    await dbConnect();
 
     try {
         const body = await req.json();
@@ -14,97 +15,77 @@ export async function POST(req) {
         /** Validate request */
         const parsed = loginSchema.safeParse(body);
         if (!parsed.success) {
-            return new Response(
-                JSON.stringify({
-                    success: false,
-                    message: "Validation failed",
-                    errors: parsed.error.errors,
-                }),
-                { status: 400 }
-            );
+            return response(false, 400, "Validation failed", {
+                errors: parsed.error.errors,
+            });
         }
 
         const { email, password } = parsed.data;
 
         /** Find user */
         const user = await User.findOne({ email });
+
         if (!user) {
-            return new Response(
-                JSON.stringify({
-                    success: false,
-                    message: "Invalid email or password",
-                }),
-                { status: 401 }
-            );
+            return response(false, 401, "Invalid email or password");
         }
+        console.log('user avesh', user);
 
         /** Check password */
+        console.log("Entered password:", password);
+        console.log("Stored password:", user.password);
+
         const isMatch = await user.comparePassword(password);
+
+        console.log("Password match:", isMatch);
+
         if (!isMatch) {
-            return new Response(
-                JSON.stringify({
-                    success: false,
-                    message: "Invalid email or password",
-                }),
-                { status: 401 }
-            );
+            return response(false, 401, "Invalid email or password");
         }
 
-        /** If email not verified */
+        /** If email not verified → send OTP */
         if (!user.isEmailVerified) {
-            const token = await generateEmailVerificationToken(user._id.toString());
+            const otp = generateOTP();
 
-            user.emailVerificationToken = token;
-            user.emailVerificationExpires = new Date(Date.now() + 60 * 60 * 1000);
+            /** Remove old OTP if exists */
+            await OTP.deleteMany({ email });
 
-            await user.save();
-
-            const verifyLink = `${process.env.NEXT_PUBLIC_APP_URL}/auth/verify-email?token=${token}`;
-
-            await sendEmail({
-                to: user.email,
-                subject: "Verify your email",
-                text: `Verify your email: ${verifyLink}`,
-                html: emailVerificationLink(verifyLink),
+            /** Save new OTP */
+            await OTP.create({
+                email,
+                otp,
+                expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
             });
 
-            return new Response(
-                JSON.stringify({
-                    success: false,
-                    message:
-                        "Email not verified. A new verification link has been sent to your email.",
-                }),
-                { status: 403 }
+            /** Send OTP email */
+            await sendEmail({
+                to: email,
+                subject: "Email Verification OTP",
+                text: `Your OTP is ${otp}`,
+                html: otpEmail(otp),
+            });
+
+            return response(
+                false,
+                403,
+                "Email not verified. OTP sent to your email."
             );
         }
 
-        /** TODO: Generate JWT token here (recommended) */
+        /** TODO: Generate JWT token */
         // const token = generateAuthToken(user);
 
         /** Login success */
-        return new Response(
-            JSON.stringify({
-                success: true,
-                message: "Login successful",
-                user: {
-                    id: user._id,
-                    name: user.name,
-                    email: user.email,
-                    role: user.role,
-                },
-            }),
-            { status: 200 }
-        );
+        return response(true, 200, "Login successful", {
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+            },
+        });
 
-    } catch (err) {
-        console.error("Login error:", err);
-
-        return new Response(
-            JSON.stringify({
-                success: false,
-                message: "Server error",
-            }),
-            { status: 500 }
-        );
+    } catch (error) {
+        console.error("Login error:", error);
+        return catchError(error, "Login failed");
     }
 }

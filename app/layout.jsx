@@ -1,12 +1,13 @@
-import { Weight } from "lucide-react";
 import "./globals.css";
-import { Assistance } from 'next/font/google'
+import { Assistant } from "next/font/google";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
-const assistanceFont = {
-  Weight: ['400', '500', '600', '700', '800'],
-  subsets: ['latin'],
-  display: 'swap'
-}
+const assistanceFont = Assistant({
+  weight: ["400", "500", "600", "700", "800"],
+  subsets: ["latin"],
+  display: "swap",
+});
 
 export const metadata = {
   title: "Create Next App",
@@ -16,9 +17,8 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body
-        className={`${assistanceFont.className}antialiased`}
-      >
+      <body className={`${assistanceFont.className} antialiased`}>
+        <ToastContainer position="top-right" autoClose={5000} />
         {children}
       </body>
     </html>
