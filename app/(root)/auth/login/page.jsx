@@ -12,7 +12,8 @@ import Logo from "@/public/assets/images/logo-black.png"
 import { loginSchema } from "@/lib/zod-schemas"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import ButtonLoading from "@/components/Application/buttonLoading"
+import ButtonLoading from "@/components/Application/ButtonLoading"
+import OTPVerification from "@/components/Application/OTPVerification"
 import {
     Field,
     FieldGroup,
@@ -39,17 +40,27 @@ const LoginPage = () => {
 
     const [loading, setLoading] = useState(false)
     const [otpVerifiactionLoading, setOtpVerifiactionLoading] = useState(false)
-    const [isTypePassword, setIsTypePassword] = useState(false)
-    const [isTypeConfirmPassword, setIsTypeConfirmPassword] = useState(false)
+    const [showPassword, setShowPassword] = useState(false)
+    const [showOTPVerification, setShowOTPVerification] = useState(false)
     const [otpEmail, setOtpEmail] = useState("")
 
 
     const onSubmit = async (values) => {
         try {
+            setLoading(true)
 
-            const { data } = await axios.post("/api/auth/login", values)
+            const response = await axios.post("/api/auth/login", values)
+
+            const { data } = response
 
             if (!data.success) {
+                // Handle OTP verification case
+                if (data.message.includes("Email not verified") || data.message.includes("OTP sent")) {
+                    setOtpEmail(values.email)
+                    setShowOTPVerification(true)
+                    showToast("info", data.message)
+                    return
+                }
                 throw new Error(data.message)
             }
 
@@ -61,6 +72,21 @@ const LoginPage = () => {
             router.push("/")
 
         } catch (error) {
+            /** Handle 403 response for unverified email */
+            if (error?.response?.status === 403) {
+                const errorData = error?.response?.data
+                console.log('403 Error data:', errorData)
+
+                if (errorData?.message.includes("Email not verified") || errorData?.message.includes("OTP sent")) {
+                    console.log('Setting OTP verification from error handler - email:', values.email)
+                    console.log('Before state update - showOTPVerification:', showOTPVerification)
+                    setOtpEmail(values.email)
+                    setShowOTPVerification(true)
+                    console.log('After state update - showOTPVerification:', showOTPVerification)
+                    showToast("info", errorData.message)
+                    return
+                }
+            }
 
             const message =
                 error?.response?.data?.message ||
@@ -68,7 +94,58 @@ const LoginPage = () => {
                 "Something went wrong"
 
             showToast("error", message)
+        } finally {
+            setLoading(false)
         }
+    }
+
+    const handleOTPVerification = async (otpValues) => {
+        try {
+            setOtpVerifiactionLoading(true)
+
+            const { data } = await axios.post("/api/auth/verify-otp", otpValues)
+
+            if (!data.success) {
+                throw new Error(data.message)
+            }
+
+            showToast("success", data.message)
+            setShowOTPVerification(false)
+            form.reset()
+
+            /** redirect after successful verification */
+            router.push("/")
+
+        } catch (error) {
+
+            const message =
+                error?.response?.data?.message ||
+                error.message ||
+                "OTP verification failed"
+
+            showToast("error", message)
+        } finally {
+            setOtpVerifiactionLoading(false)
+        }
+    }
+
+    const handleBackToLogin = () => {
+        setShowOTPVerification(false)
+        setOtpEmail("")
+        form.reset()
+    }
+
+    // Show OTP Verification component
+    console.log('showOTPVerification:', showOTPVerification, 'otpEmail:', otpEmail)
+    if (showOTPVerification) {
+        console.log('Rendering OTP Verification component')
+        return (
+            <OTPVerification
+                email={otpEmail}
+                onSubmit={handleOTPVerification}
+                loading={otpVerifiactionLoading}
+            />
+        )
     }
 
     return (
@@ -173,13 +250,13 @@ const LoginPage = () => {
                         <ButtonLoading
                             type="submit"
                             text="Login"
-                            loading={isSubmitting}
+                            loading={loading}
                             className="w-full"
                         />
 
                         {/* Register */}
                         <p className="text-center text-sm text-muted-foreground">
-                            Don’t have an account?{" "}
+                            Don't have an account?{" "}
                             <Link
                                 href={WEBSITE_REGISTER}
                                 className="text-primary font-medium hover:underline"

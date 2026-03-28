@@ -12,7 +12,7 @@ import { registerSchema } from "@/lib/zod-schemas"
 
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import ButtonLoading from "@/components/Application/buttonLoading"
+import ButtonLoading from "@/components/Application/ButtonLoading"
 
 import {
     Field,
