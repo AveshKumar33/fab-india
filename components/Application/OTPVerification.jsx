@@ -30,6 +30,18 @@ const OTPVerification = ({
     const [resendTimer, setResendTimer] = useState(0)
     const inputRefs = useRef([])
 
+    const handlePaste = (e, field) => {
+        e.preventDefault()
+        const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6)
+        if (pastedData.length === 6) {
+            field.onChange(pastedData)
+            // Focus last input
+            setTimeout(() => {
+                inputRefs.current[5]?.focus()
+            }, 0)
+        }
+    }
+
     const form = useForm({
         resolver: zodResolver(otpSchema),
         defaultValues: {
@@ -131,33 +143,44 @@ const OTPVerification = ({
                                     <Field data-invalid={fieldState.invalid}>
                                         <FieldLabel>Verification Code</FieldLabel>
 
-                                        <div className="flex justify-center gap-3 my-6">
+                                        <div className="flex justify-center gap-3 my-6" onPaste={(e) => handlePaste(e, field)}>
                                             {[0, 1, 2, 3, 4, 5].map((index) => (
                                                 <Input
                                                     key={index}
+                                                    ref={(el) => (inputRefs.current[index] = el)}
                                                     type="text"
                                                     maxLength={1}
                                                     className="w-16 h-16 text-2xl font-bold border-2 border-gray-300 rounded-xl bg-white text-center focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
                                                     value={field.value?.[index] || ''}
                                                     onChange={(e) => {
+                                                        const value = e.target.value.replace(/\D/g, '').slice(-1)
                                                         const newValue = field.value || '';
                                                         const updatedValue = newValue.split('');
-                                                        updatedValue[index] = e.target.value.slice(-1);
+                                                        updatedValue[index] = value;
                                                         field.onChange(updatedValue.join(''));
 
                                                         // Auto-focus next input
-                                                        if (e.target.value && index < 5) {
+                                                        if (value && index < 5) {
                                                             setTimeout(() => {
-                                                                const nextInput = e.target.form.elements[index + 1];
-                                                                if (nextInput) nextInput.focus();
+                                                                inputRefs.current[index + 1]?.focus();
                                                             }, 0);
                                                         }
                                                     }}
                                                     onKeyDown={(e) => {
                                                         // Handle backspace
                                                         if (e.key === 'Backspace' && !field.value?.[index] && index > 0) {
-                                                            const prevInput = e.target.form.elements[index - 1];
-                                                            if (prevInput) prevInput.focus();
+                                                            inputRefs.current[index - 1]?.focus();
+                                                        } else if (e.key === 'Backspace' && field.value?.[index]) {
+                                                            // Clear current and go to previous
+                                                            const newValue = field.value || '';
+                                                            const updatedValue = newValue.split('');
+                                                            updatedValue[index] = '';
+                                                            field.onChange(updatedValue.join(''));
+                                                            if (index > 0) {
+                                                                setTimeout(() => {
+                                                                    inputRefs.current[index - 1]?.focus();
+                                                                }, 0);
+                                                            }
                                                         }
                                                     }}
                                                 />
