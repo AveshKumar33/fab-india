@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { otpSchema } from '@/lib/zod-schemas'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSeparator, REGEXP_ONLY_DIGITS } from '@/components/ui/input-otp'
 import { Button } from '@/components/ui/button'
 import ButtonLoading from '@/components/Application/ButtonLoading'
 import axios from 'axios'
@@ -127,13 +128,31 @@ const OTPVerification = ({ email, onSubmit, loading }) => {
                                             {[0, 1, 2, 3, 4, 5].map((index) => (
                                                 <Input
                                                     key={index}
-                                                    ref={(el) => inputRefs.current[index] = el}
                                                     type="text"
                                                     maxLength={1}
                                                     className="w-16 h-16 text-2xl font-bold border-2 border-gray-300 rounded-xl bg-white text-center focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
                                                     value={field.value?.[index] || ''}
-                                                    onChange={(e) => handleInputChange(index, e.target.value, field)}
-                                                    onKeyDown={(e) => handleKeyDown(index, e, field)}
+                                                    onChange={(e) => {
+                                                        const newValue = field.value || '';
+                                                        const updatedValue = newValue.split('');
+                                                        updatedValue[index] = e.target.value.slice(-1);
+                                                        field.onChange(updatedValue.join(''));
+
+                                                        // Auto-focus next input
+                                                        if (e.target.value && index < 5) {
+                                                            setTimeout(() => {
+                                                                const nextInput = e.target.form.elements[index + 1];
+                                                                if (nextInput) nextInput.focus();
+                                                            }, 0);
+                                                        }
+                                                    }}
+                                                    onKeyDown={(e) => {
+                                                        // Handle backspace
+                                                        if (e.key === 'Backspace' && !field.value?.[index] && index > 0) {
+                                                            const prevInput = e.target.form.elements[index - 1];
+                                                            if (prevInput) prevInput.focus();
+                                                        }
+                                                    }}
                                                 />
                                             ))}
                                         </div>

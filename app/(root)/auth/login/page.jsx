@@ -1,6 +1,6 @@
 "use client"
 import { Eye, EyeOff } from "lucide-react"
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import Image from "next/image"
 import { useForm, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -19,12 +19,19 @@ import {
     FieldGroup,
     FieldLabel, FieldError
 } from "@/components/ui/field"
+import { useAppDispatch, useAppSelector } from "@/redux/hooks"
+import { loginUser, verifyOTP, resendOTP, clearError, setOTPRequired } from "@/redux/slices/authSlice"
 
 import { WEBSITE_REGISTER, WEBSITE_FORGOT_PASSWORD } from "@/routes/WebsitePanelRoute"
 
 const LoginPage = () => {
-
     const router = useRouter()
+    const dispatch = useAppDispatch()
+    const auth = useAppSelector((state) => state.auth)
+
+    const [showPassword, setShowPassword] = useState(false)
+    const [showOTPVerification, setShowOTPVerification] = useState(false)
+    const [otpEmail, setOtpEmail] = useState("")
 
     const form = useForm({
         resolver: zodResolver(loginSchema),
@@ -38,95 +45,32 @@ const LoginPage = () => {
         formState: { isSubmitting },
     } = form
 
-    const [loading, setLoading] = useState(false)
-    const [otpVerifiactionLoading, setOtpVerifiactionLoading] = useState(false)
-    const [showPassword, setShowPassword] = useState(false)
-    const [showOTPVerification, setShowOTPVerification] = useState(false)
-    const [otpEmail, setOtpEmail] = useState("")
+    // Handle auth state changes
+    useEffect(() => {
+        if (auth.isAuthenticated && auth.user) {
+            showToast("success", "Login successful!")
+            form.reset()
+            router.push("/")
+        }
 
+        if (auth.otpRequired) {
+            setOtpEmail(auth.otpEmail)
+            setShowOTPVerification(true)
+            showToast("info", "OTP sent to your email")
+        }
+
+        if (auth.error) {
+            showToast("error", auth.error)
+            dispatch(clearError())
+        }
+    }, [auth, router, form, dispatch])
 
     const onSubmit = async (values) => {
-        try {
-            setLoading(true)
-
-            const response = await axios.post("/api/auth/login", values)
-
-            const { data } = response
-
-            if (!data.success) {
-                // Handle OTP verification case
-                if (data.message.includes("Email not verified") || data.message.includes("OTP sent")) {
-                    setOtpEmail(values.email)
-                    setShowOTPVerification(true)
-                    showToast("info", data.message)
-                    return
-                }
-                throw new Error(data.message)
-            }
-
-            showToast("success", data.message)
-
-            form.reset()
-
-            /** redirect after login */
-            router.push("/")
-
-        } catch (error) {
-            /** Handle 403 response for unverified email */
-            if (error?.response?.status === 403) {
-                const errorData = error?.response?.data
-                console.log('403 Error data:', errorData)
-
-                if (errorData?.message.includes("Email not verified") || errorData?.message.includes("OTP sent")) {
-                    console.log('Setting OTP verification from error handler - email:', values.email)
-                    console.log('Before state update - showOTPVerification:', showOTPVerification)
-                    setOtpEmail(values.email)
-                    setShowOTPVerification(true)
-                    console.log('After state update - showOTPVerification:', showOTPVerification)
-                    showToast("info", errorData.message)
-                    return
-                }
-            }
-
-            const message =
-                error?.response?.data?.message ||
-                error.message ||
-                "Something went wrong"
-
-            showToast("error", message)
-        } finally {
-            setLoading(false)
-        }
+        dispatch(loginUser({ email: values.email, password: values.password }))
     }
 
     const handleOTPVerification = async (otpValues) => {
-        try {
-            setOtpVerifiactionLoading(true)
-
-            const { data } = await axios.post("/api/auth/verify-otp", otpValues)
-
-            if (!data.success) {
-                throw new Error(data.message)
-            }
-
-            showToast("success", data.message)
-            setShowOTPVerification(false)
-            form.reset()
-
-            /** redirect after successful verification */
-            router.push("/")
-
-        } catch (error) {
-
-            const message =
-                error?.response?.data?.message ||
-                error.message ||
-                "OTP verification failed"
-
-            showToast("error", message)
-        } finally {
-            setOtpVerifiactionLoading(false)
-        }
+        dispatch(verifyOTP({ email: otpValues.email, otp: otpValues.otp }))
     }
 
     const handleBackToLogin = () => {
@@ -143,7 +87,7 @@ const LoginPage = () => {
             <OTPVerification
                 email={otpEmail}
                 onSubmit={handleOTPVerification}
-                loading={otpVerifiactionLoading}
+                loading={auth.isLoading}
             />
         )
     }
@@ -250,7 +194,7 @@ const LoginPage = () => {
                         <ButtonLoading
                             type="submit"
                             text="Login"
-                            loading={loading}
+                            loading={auth.isLoading}
                             className="w-full"
                         />
 
