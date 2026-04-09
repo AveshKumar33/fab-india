@@ -198,16 +198,18 @@ const LoginPage = () => {
                             className="w-full"
                         />
 
-                        {/* Register */}
-                        <p className="text-center text-sm text-muted-foreground">
-                            Don't have an account?{" "}
-                            <Link
-                                href={WEBSITE_REGISTER}
-                                className="text-primary font-medium hover:underline"
-                            >
-                                Create account
-                            </Link>
-                        </p>
+                        {/* Links Container */}
+                        <div className="flex flex-col gap-2 text-center text-sm">
+                            <span className="text-muted-foreground">
+                                Don't have an account?{" "}
+                                <Link
+                                    href={WEBSITE_REGISTER}
+                                    className="text-primary hover:underline font-medium"
+                                >
+                                    Create account
+                                </Link>
+                            </span>
+                        </div>
 
                     </form>
 

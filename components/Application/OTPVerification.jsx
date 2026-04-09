@@ -17,7 +17,14 @@ import {
     FieldLabel, FieldError
 } from '@/components/ui/field'
 
-const OTPVerification = ({ email, onSubmit, loading }) => {
+const OTPVerification = ({
+    email,
+    onSubmit,
+    loading,
+    onBack,
+    title = "Verify your email",
+    description = "Enter the 6-digit code sent to your email"
+}) => {
 
     const [resendLoading, setResendLoading] = useState(false)
     const [resendTimer, setResendTimer] = useState(0)
@@ -97,10 +104,10 @@ const OTPVerification = ({ email, onSubmit, loading }) => {
                     {/* Title */}
                     <div className="text-center space-y-1">
                         <h1 className="text-2xl font-semibold tracking-tight">
-                            Verify your email
+                            {title}
                         </h1>
                         <p className="text-sm text-muted-foreground">
-                            Enter the 6-digit code sent to {email}
+                            {description} {email}
                         </p>
                     </div>
 
@@ -164,6 +171,18 @@ const OTPVerification = ({ email, onSubmit, loading }) => {
                                 )}
                             />
                         </FieldGroup>
+
+                        {/* Back Button */}
+                        {onBack && (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="w-full"
+                                onClick={onBack}
+                            >
+                                Back
+                            </Button>
+                        )}
 
                         {/* Submit */}
                         <ButtonLoading

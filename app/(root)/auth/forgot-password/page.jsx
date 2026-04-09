@@ -18,6 +18,8 @@ import {
     FieldLabel,
     FieldError,
 } from "@/components/ui/field"
+import { showToast } from "@/lib/showToast"
+import Link from "next/link"
 
 const ForgotPassword = () => {
     const form = useForm({
@@ -32,8 +34,26 @@ const ForgotPassword = () => {
     } = form
 
     const onSubmit = async (values) => {
-        console.log("Forgot password email:", values.email)
-        // call API here
+        try {
+            const response = await fetch('/api/auth/forgot-password', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(values),
+            })
+
+            const data = await response.json()
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Failed to send reset link')
+            }
+
+            showToast("success", "Reset link sent! Check your email.")
+
+        } catch (error) {
+            showToast("error", error.message || "Failed to send reset link")
+        }
     }
 
     return (
@@ -85,6 +105,18 @@ const ForgotPassword = () => {
                             className="w-full"
                         />
                     </form>
+
+                    {/* Back to Login */}
+                    <p className="text-center text-sm text-muted-foreground">
+                        Remember your password?{" "}
+                        <Link
+                            href="/auth/login"
+                            className="text-primary font-medium hover:underline"
+                        >
+                            Back to Login
+                        </Link>
+                    </p>
+
                 </CardContent>
             </Card>
         </div>

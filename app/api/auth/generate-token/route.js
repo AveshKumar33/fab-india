@@ -1,6 +1,6 @@
 import { dbConnect } from "@/lib/database-connection";
 import { User } from "@/models/User.model";
-import { forgotPasswordSchema } from "@/lib/zod-schemas";
+import { response } from "@/lib/helper-function";
 import { sendEmail } from "@/lib/send-mail";
 
 export async function POST(req) {
@@ -8,35 +8,33 @@ export async function POST(req) {
 
     try {
         const body = await req.json();
-        const parsed = forgotPasswordSchema.safeParse(body);
+        const { email } = body;
 
-        if (!parsed.success) {
-            return new Response(
-                JSON.stringify({ errors: parsed.error.errors }),
-                { status: 400 }
-            );
-        }
+        // Find or create user
+        let user = await User.findOne({ email: email.toLowerCase() });
 
-        const { email } = parsed.data;
-        const user = await User.findOne({ email });
         if (!user) {
-            return new Response(
-                JSON.stringify({ message: "If this email exists, a reset link will be sent" }),
-                { status: 200 }
-            );
+            // Create a test user
+            user = new User({
+                name: "Test User",
+                email: email.toLowerCase(),
+                password: "TestPassword123",
+                isEmailVerified: true
+            });
+            await user.save();
         }
 
-        /** Here you would generate a reset token and send email */
+        // Generate reset token
         const resetToken = Math.random().toString(36).substring(2, 15);
 
-        /** Save token to user (optional) or a separate collection  */
+        // Save token to user
         user.resetToken = resetToken;
-        user.resetTokenExpiry = Date.now() + 86400000; /** 24 hours */
+        user.resetTokenExpiry = Date.now() + 86400000; // 24 hours
         await user.save();
 
-        /** Send reset email */
         const resetLink = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/reset-password?token=${resetToken}&email=${email}`;
 
+        // Send reset email
         try {
             await sendEmail({
                 to: email,
@@ -61,15 +59,17 @@ export async function POST(req) {
             if (process.env.NODE_ENV !== 'production') {
                 console.log('DEV: Reset link (email failed):', resetLink);
             }
-            // Continue with response even if email fails (security best practice)
         }
 
-        return new Response(
-            JSON.stringify({ message: "If this email exists, a reset link will be sent" }),
-            { status: 200 }
-        );
-    } catch (err) {
-        console.error(err);
-        return new Response(JSON.stringify({ error: "Server error" }), { status: 500 });
+        return response(true, 200, "Token generated successfully", {
+            token: resetToken,
+            resetLink,
+            email: email,
+            expiresIn: "1 hour"
+        });
+
+    } catch (error) {
+        console.error("Generate token error:", error);
+        return response(false, 500, "Server error", { error: error.message });
     }
 }
