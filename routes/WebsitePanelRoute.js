@@ -16,3 +16,7 @@ export const WEBSITE_LOGOUT = "/auth/logout"
 /** Dashboard / App (when you add protected routes) */
 export const WEBSITE_DASHBOARD = "/dashboard"
 export const WEBSITE_PROFILE = "/profile"
+
+/** User Routes */
+export const WEBSITE_USER_DASHBOARD = "/user/dashboard"
+export const WEBSITE_USER_PROFILE = "/user/profile"

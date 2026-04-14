@@ -5,8 +5,7 @@ import Image from "next/image"
 import { useForm, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import Link from "next/link"
-import axios from "axios"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { showToast } from "@/lib/showToast"
 import Logo from "@/public/assets/images/logo-black.png"
 import { loginSchema } from "@/lib/zod-schemas"
@@ -21,12 +20,14 @@ import {
 } from "@/components/ui/field"
 import { useAppDispatch, useAppSelector } from "@/redux/hooks"
 import { loginUser, verifyOTP, resendOTP, clearError, setOTPRequired } from "@/redux/slices/authSlice"
-
 import { WEBSITE_REGISTER, WEBSITE_FORGOT_PASSWORD } from "@/routes/WebsitePanelRoute"
+import { ADMIN_DASHBOARD } from "../../../../routes/AdminPanelRoute"
+import { WEBSITE_USER_DASHBOARD } from "../../../../routes/WebsitePanelRoute"
 
 const LoginPage = () => {
     const router = useRouter()
     const dispatch = useAppDispatch()
+    const searchParams = useSearchParams()
     const auth = useAppSelector((state) => state.auth)
 
     const [showPassword, setShowPassword] = useState(false)
@@ -45,7 +46,7 @@ const LoginPage = () => {
         formState: { isSubmitting },
     } = form
 
-    // Handle auth state changes
+    /** Handle auth state changes */
     useEffect(() => {
         if (auth.isAuthenticated && auth.user) {
             showToast("success", "Login successful!")
@@ -66,7 +67,13 @@ const LoginPage = () => {
     }, [auth, router, form, dispatch])
 
     const onSubmit = async (values) => {
-        dispatch(loginUser({ email: values.email, password: values.password }))
+        const { payload } = await dispatch(loginUser({ email: values.email, password: values.password }))
+        if (searchParams.get("callback")) {
+            router.push(searchParams.get("callback"))
+        } else {
+            console.log('auth.user.data:', payload?.data?.user?.role)
+            payload?.data?.user?.role === "admin" ? router.push(ADMIN_DASHBOARD) : router.push(WEBSITE_USER_DASHBOARD)
+        }
     }
 
     const handleOTPVerification = async (otpValues) => {
@@ -79,7 +86,7 @@ const LoginPage = () => {
         form.reset()
     }
 
-    // Show OTP Verification component
+    /** Show OTP Verification component */
     console.log('showOTPVerification:', showOTPVerification, 'otpEmail:', otpEmail)
     if (showOTPVerification) {
         console.log('Rendering OTP Verification component')
@@ -114,9 +121,7 @@ const LoginPage = () => {
 
                     {/* Form */}
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-
                         <FieldGroup>
-
                             {/* Email */}
                             <Controller
                                 name="email"
