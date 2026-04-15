@@ -1,3 +1,5 @@
+'use client'
+
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { AiOutlineLogout } from "react-icons/ai"
 import { useRouter } from "next/navigation"
