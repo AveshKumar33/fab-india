@@ -11,7 +11,7 @@ const MediaPage = () => {
     ]
 
     return (
-        <div className="p-6">
+        <div className="p-12">
             <AdminBreadcrumb breadcrumbData={breadcrumbData} />
 
             <div className="mt-6">

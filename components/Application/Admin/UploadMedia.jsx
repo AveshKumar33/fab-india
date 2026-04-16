@@ -31,9 +31,8 @@ const UploadMedia = ({ isMultiple }) => {
             }}
             options={{
                 multiple: isMultiple,
-                sources: ['local', 'url', 'camera', 'image_search', 'facebook', 'instagram', 'dropbox', 'gdrive', 'shutterstock', 'getty', 'istock', 'unsplash']
+                sources: ['local', 'url', 'camera']
             }}
-            source="auto"
         >
             {({ open }) => (
                 <Button

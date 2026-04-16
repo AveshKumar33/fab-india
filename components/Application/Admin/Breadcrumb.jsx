@@ -10,21 +10,23 @@ import {
 
 const AdminBreadcrumb = ({ breadcrumbData }) => {
     return (
-        <Breadcrumb className="mb-5">
+        <Breadcrumb className="mb-4">
             <BreadcrumbList>
                 {
                     breadcrumbData?.length > 0 && breadcrumbData.map((item, index) => {
                         return (
-                            index !== breadcrumbData.length - 1 ? <div key={index} className='flex items-center'>
-                                <BreadcrumbItem>
-                                    <BreadcrumbLink href={item.href}>{item.label}</BreadcrumbLink>
-                                </BreadcrumbItem>
-                                <BreadcrumbSeparator />
-                            </div> : <div key={index} className='flex items-center'>
-                                <BreadcrumbItem>
+                            index !== breadcrumbData.length - 1 ? (
+                                <React.Fragment key={index}>
+                                    <BreadcrumbItem>
+                                        <BreadcrumbLink href={item.href}>{item.label}</BreadcrumbLink>
+                                    </BreadcrumbItem>
+                                    <BreadcrumbSeparator />
+                                </React.Fragment>
+                            ) : (
+                                <BreadcrumbItem key={index}>
                                     <BreadcrumbPage>{item.label}</BreadcrumbPage>
                                 </BreadcrumbItem>
-                            </div>
+                            )
                         )
                     })
                 }
